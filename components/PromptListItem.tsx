@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Prompt, PromptVersion } from '../types';
-import { ChevronUpIcon, ChevronDownIcon, SparklesIcon, ClipboardDocumentListIcon, EditIcon, DeleteIcon, ClockIcon, CheckIcon, ArrowUturnLeftIcon, CopyIcon } from './icons';
+import { ChevronUpIcon, ChevronDownIcon, SparklesIcon, ClipboardDocumentListIcon, EditIcon, DeleteIcon, ClockIcon, CheckIcon, ArrowUturnLeftIcon, CopyIcon, GitCompareArrowsIcon } from './icons';
 
 type Tab = 'content' | 'config' | 'instructions' | 'rules';
 
@@ -20,6 +20,7 @@ interface PromptListItemProps {
     onSelectHistoricalVersion: (version: number) => void;
     onRestoreVersion: (id: string, version: PromptVersion) => void;
     onDeleteVersion: (promptId: string, promptTitle: string, versionNumber: number) => void;
+    onOpenDiffModal: (promptId: string, versionNumbers: [number, number]) => void;
     renderFormattedText: (text: string) => React.ReactNode;
 }
 
@@ -39,13 +40,17 @@ export const PromptListItem: React.FC<PromptListItemProps> = ({
     onSelectHistoricalVersion,
     onRestoreVersion,
     onDeleteVersion,
+    onOpenDiffModal,
     renderFormattedText,
 }) => {
     const [activeTab, setActiveTab] = useState<Tab>('content');
+    const [selectedVersionsForDiff, setSelectedVersionsForDiff] = useState<number[]>([]);
 
     useEffect(() => {
         if (isExpanded) {
             setActiveTab('content');
+        } else {
+            setSelectedVersionsForDiff([]);
         }
     }, [isExpanded]);
 
@@ -53,6 +58,18 @@ export const PromptListItem: React.FC<PromptListItemProps> = ({
         setActiveTab(tab);
     }
     
+    const handleVersionSelectForDiff = (versionNumber: number) => {
+        setSelectedVersionsForDiff(prev => {
+            if (prev.includes(versionNumber)) {
+                return prev.filter(v => v !== versionNumber);
+            }
+            if (prev.length < 2) {
+                return [...prev, versionNumber];
+            }
+            return prev;
+        });
+    };
+
     if (!prompt || !displayedData) return null;
 
     return (
@@ -203,9 +220,19 @@ export const PromptListItem: React.FC<PromptListItemProps> = ({
                             </div>
                         </main>
                         <aside className="version-history custom-scrollbar">
-                            <h4 className="version-history__header">
-                                <ClockIcon className="icon" /> Version History
-                            </h4>
+                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-xs)'}}>
+                                <h4 className="version-history__header">
+                                    <ClockIcon className="icon" /> Version History
+                                </h4>
+                                {selectedVersionsForDiff.length === 2 && (
+                                    <button
+                                        className="btn btn--secondary btn--sm"
+                                        onClick={() => onOpenDiffModal(prompt.id, selectedVersionsForDiff.sort((a, b) => a - b) as [number, number])}
+                                    >
+                                        <GitCompareArrowsIcon className="icon" /> Compare
+                                    </button>
+                                )}
+                            </div>
                             <ul className="version-history__list">
                                 {currentPromptObject.versionHistory.slice().sort((a,b) => b.version - a.version).map(v => {
                                     const isCurrentVersion = v.version === currentPromptObject.currentVersion;
@@ -223,6 +250,15 @@ export const PromptListItem: React.FC<PromptListItemProps> = ({
                                             <div className="version-history__dot"></div>
                                             <div>
                                                 <div className="version-history__item-title">
+                                                    <input 
+                                                      type="checkbox"
+                                                      checked={selectedVersionsForDiff.includes(v.version)}
+                                                      onChange={() => handleVersionSelectForDiff(v.version)}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      disabled={selectedVersionsForDiff.length >= 2 && !selectedVersionsForDiff.includes(v.version)}
+                                                      style={{marginRight: 'var(--space-sm)', cursor:'pointer', accentColor: 'var(--accent-primary)'}}
+                                                      aria-label={`Select version ${v.version} for comparison`}
+                                                    />
                                                     Version {v.version}
                                                     {isCurrentVersion && <span className="current-badge" style={{transform: 'scale(0.8)', marginLeft: 'var(--space-xs)'}}><CheckIcon style={{width:'1em', height:'1em'}}/> Current</span>}
                                                 </div>

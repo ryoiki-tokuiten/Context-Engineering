@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
@@ -10,23 +11,20 @@ import ReactFlow, {
   type Node,
   type Edge,
   type Connection,
+  NodeDragHandler,
 } from 'reactflow';
-import { GoogleGenAI } from '@google/genai';
 
 import { BlockLibrary } from './BlockLibrary';
 import { PropertiesPanel } from './PropertiesPanel';
-import { AIFillModal } from './AIFillModal';
 import { ConfirmationModal } from '../ConfirmationModal';
-import { PROMPT_NODE_TYPE, initialNodes, getSortedNodes } from './constants';
+import { PROMPT_NODE_TYPE, initialNodes, initialEdges, SYSTEM_NODE_ID, TRIGGER_NODE_ID } from './constants';
 import { PromptBlockNode } from './customNode';
-
-const nodeTypes = { [PROMPT_NODE_TYPE]: PromptBlockNode };
-import { PromptBlockData, AIFillWorkflow } from './types';
+import { PromptBlockData, BlockType } from './types';
 import { AppSettings, NotificationState } from '../../types';
-import { ZapIcon, ExportIcon, ImportIcon, DeleteIcon, SaveIcon, PanelLeftOpenIcon, PanelLeftCloseIcon } from '../icons';
+import { SaveIcon, PanelLeftOpenIcon, PanelLeftCloseIcon, DeleteIcon } from '../icons';
 
-let id = initialNodes.length;
-const getId = () => `dnd-node_${id++}`;
+let id = 100;
+const getId = () => `node_${id++}`;
 
 interface PromptBuilderProps {
   appSettings: AppSettings;
@@ -39,19 +37,22 @@ interface PromptBuilderProps {
 const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotification, onSaveRequest, onToggleSidebar, isSidebarCollapsed }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
-  const [isAIFillModalOpen, setIsAIFillModalOpen] = useState(false);
-  const importFileRef = useRef<HTMLInputElement>(null);
   const [isClearConfirmationOpen, setIsClearConfirmationOpen] = useState(false);
 
   const { deleteElements, getNodes, getEdges } = useReactFlow();
 
-  
+  const nodeTypes = useMemo(() => ({ [PROMPT_NODE_TYPE]: PromptBlockNode }), []);
 
   const onConnect = useCallback(
-    (params: Edge | Connection) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
-    [setEdges]
+    (params: Edge | Connection) => {
+        // Prevent connecting Definitions
+        const sourceNode = nodes.find(n => n.id === params.source);
+        if (sourceNode?.parentNode === SYSTEM_NODE_ID) return;
+        setEdges((eds) => addEdge({ ...params, animated: true }, eds));
+    },
+    [setNodes, nodes, setEdges]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -59,13 +60,30 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  const getLowestNode = (currentNodes: Node[], currentEdges: Edge[]): Node | null => {
+      // Trace from Trigger Node down
+      let currentId = TRIGGER_NODE_ID;
+      let currentNode = currentNodes.find(n => n.id === currentId);
+      
+      // Safety check if trigger is deleted (though we try to prevent it)
+      if (!currentNode) return currentNodes[currentNodes.length -1]; 
+
+      while (true) {
+          const outEdge = currentEdges.find(e => e.source === currentId);
+          if (!outEdge) break;
+          currentId = outEdge.target;
+          const nextNode = currentNodes.find(n => n.id === currentId);
+          if (nextNode) currentNode = nextNode;
+          else break;
+      }
+      return currentNode || null;
+  };
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
 
-      if (!reactFlowInstance || !reactFlowWrapper.current) {
-        return;
-      }
+      if (!reactFlowInstance || !reactFlowWrapper.current) return;
 
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const blockDefinitionString = event.dataTransfer.getData('application/reactflow');
@@ -73,26 +91,131 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
       if (!blockDefinitionString) return;
 
       const blockDefinition = JSON.parse(blockDefinitionString);
+      const type: BlockType = blockDefinition.type;
       
       const position = reactFlowInstance.project({
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
       });
 
+      // 1. Handle Definitions (Must drop into System)
+      if (['ToolDef', 'SubAgentDef', 'MCPDef'].includes(type)) {
+        // Simple grid logic for small chips inside the container
+        const existingDefs = nodes.filter(n => n.parentNode === SYSTEM_NODE_ID);
+        const cols = 4; 
+        const row = Math.floor(existingDefs.length / cols);
+        const col = existingDefs.length % cols;
+        const xOffset = 20 + (col * 80);
+        const yOffset = 100 + (row * 80);
+        
+        const newNode: Node<PromptBlockData> = {
+            id: getId(),
+            type: PROMPT_NODE_TYPE,
+            position: { x: xOffset, y: yOffset }, // Relative to parent
+            parentNode: SYSTEM_NODE_ID,
+            extent: 'parent',
+            data: {
+                type: type,
+                name: `${blockDefinition.name.replace(' Definition', '')}`,
+                content: blockDefinition.defaultContent || '',
+            },
+            style: { zIndex: 10 }
+        };
+        
+        // Auto-expand System Node height if needed
+        setNodes((nds) => {
+            const systemNode = nds.find(n => n.id === SYSTEM_NODE_ID);
+            let newNds = [...nds];
+            if (systemNode) {
+                const currentHeight = Number(systemNode.style?.height) || 300;
+                if (yOffset > currentHeight - 80) {
+                     newNds = newNds.map(n => n.id === SYSTEM_NODE_ID ? { ...n, style: { ...n.style, height: currentHeight + 80 } } : n);
+                }
+            }
+            return [...newNds, newNode];
+        });
+        return;
+      }
+
+      // 2. Handle Build History (Append to chain)
+      const lastNode = getLowestNode(nodes, edges);
+      if (!lastNode) return; // Should not happen given TriggerNode is fixed
+
+      const newNodeId = getId();
+      // Auto-position below the last node
+      const newX = lastNode.position.x;
+      const newY = lastNode.position.y + 100;
+
       const newNode: Node<PromptBlockData> = {
-        id: getId(),
+        id: newNodeId,
         type: PROMPT_NODE_TYPE,
-        position,
+        position: { x: newX, y: newY },
         data: {
-          type: blockDefinition.type,
+          type: type,
           name: blockDefinition.name,
-          content: blockDefinition.defaultContent || `This is a ${blockDefinition.name} block.`,
+          content: blockDefinition.defaultContent || '',
         },
       };
 
-      setNodes((nds) => nds.concat(newNode));
+      const newEdge = { id: `e-${lastNode.id}-${newNodeId}`, source: lastNode.id, target: newNodeId, animated: true };
+      
+      let nodesToAdd = [newNode];
+      let edgesToAdd = [newEdge];
+
+      // Auto-completion Logic
+      let nextY = newY + 100;
+
+      if (type === 'ToolCall') {
+          const resultNodeId = getId();
+          const resultNode: Node<PromptBlockData> = {
+              id: resultNodeId,
+              type: PROMPT_NODE_TYPE,
+              position: { x: newX, y: nextY },
+              data: { type: 'ToolResult', name: 'Tool Result', content: 'Result: ...' }
+          };
+          const resultEdge = { id: `e-${newNodeId}-${resultNodeId}`, source: newNodeId, target: resultNodeId, animated: true };
+          nodesToAdd.push(resultNode);
+          edgesToAdd.push(resultEdge);
+      } else if (type === 'MCPCall') {
+          const resultNodeId = getId();
+          const resultNode: Node<PromptBlockData> = {
+              id: resultNodeId,
+              type: PROMPT_NODE_TYPE,
+              position: { x: newX, y: nextY },
+              data: { type: 'MCPResult', name: 'MCP Result', content: 'Result: ...' }
+          };
+          const resultEdge = { id: `e-${newNodeId}-${resultNodeId}`, source: newNodeId, target: resultNodeId, animated: true };
+          nodesToAdd.push(resultNode);
+          edgesToAdd.push(resultEdge);
+      } else if (type === 'SubAgentCall') {
+          const resultNodeId = getId();
+          const resultNode: Node<PromptBlockData> = {
+              id: resultNodeId,
+              type: PROMPT_NODE_TYPE,
+              position: { x: newX, y: nextY },
+              data: { type: 'SubAgentResponse', name: 'Sub-Agent Response', content: 'Response: ...' }
+          };
+          const resultEdge = { id: `e-${newNodeId}-${resultNodeId}`, source: newNodeId, target: resultNodeId, animated: true };
+          nodesToAdd.push(resultNode);
+          edgesToAdd.push(resultEdge);
+      } else if (type === 'ImplementationPlan') {
+          // Mandatory User Message append
+          const msgNodeId = getId();
+          const msgNode: Node<PromptBlockData> = {
+              id: msgNodeId,
+              type: PROMPT_NODE_TYPE,
+              position: { x: newX, y: nextY },
+              data: { type: 'UserMessage', name: 'User Message', content: 'User: Proceed with the plan.' }
+          };
+          const msgEdge = { id: `e-${newNodeId}-${msgNodeId}`, source: newNodeId, target: msgNodeId, animated: true };
+          nodesToAdd.push(msgNode);
+          edgesToAdd.push(msgEdge);
+      }
+
+      setNodes((nds) => nds.concat(nodesToAdd));
+      setEdges((eds) => eds.concat(edgesToAdd));
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, setEdges, nodes, edges]
   );
   
   const selectedNode = useMemo(() => nodes.find(n => n.selected), [nodes]);
@@ -101,115 +224,34 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
       setNodes((nds) => 
         nds.map((node) => {
             if (node.id === nodeId) {
-                return {
-                    ...node,
-                    data: {
-                        ...node.data,
-                        ...newData
-                    }
-                }
+                return { ...node, data: { ...node.data, ...newData } }
             }
             return node;
         })
       );
   }
 
-  const handleAIFill = useCallback((workflow: AIFillWorkflow) => {
-    if (!workflow || !Array.isArray(workflow.nodes) || !Array.isArray(workflow.edges)) {
-        showNotification('AI Fill returned an invalid workflow structure.', 'error');
-        return;
-    }
-    setNodes(workflow.nodes);
-    setEdges(workflow.edges.map(e => ({...e, animated: true})));
-    setIsAIFillModalOpen(false);
-    showNotification('AI workflow generated successfully!', 'success');
-
-    setTimeout(() => {
-        if (reactFlowInstance) {
-            reactFlowInstance.fitView({ padding: 0.1 });
-        }
-    }, 100);
-  }, [reactFlowInstance, setNodes, setEdges, showNotification]);
-
-  const handleExport = () => {
-    if (nodes.length === 0) {
-      showNotification("Canvas is empty. There is nothing to export.", "warning");
-      return;
-    }
-    const workflow = { nodes, edges };
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(workflow, null, 2))}`;
-    const link = document.createElement('a');
-    link.href = jsonString;
-    link.download = `prompt_workflow_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    showNotification("Workflow exported successfully.", "success");
-  };
-
-  const handleImportClick = () => {
-    importFileRef.current?.click();
-  };
-
-  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const text = e.target?.result as string;
-            const importedData = JSON.parse(text);
-
-            if (importedData && Array.isArray(importedData.nodes) && Array.isArray(importedData.edges)) {
-                setNodes(importedData.nodes);
-                setEdges(importedData.edges.map((e: Edge) => ({...e, animated: true})));
-                showNotification("Workflow imported successfully.", "success");
-                setTimeout(() => reactFlowInstance?.fitView({ padding: 0.1 }), 100);
-            } else {
-                showNotification("Invalid workflow file format. The file must contain 'nodes' and 'edges' arrays.", "error", 5000);
-            }
-        } catch (error) {
-            console.error("Error importing workflow:", error);
-            showNotification("Failed to import workflow file. It may be corrupted or not valid JSON.", "error", 5000);
-        } finally {
-            if (importFileRef.current) {
-                importFileRef.current.value = "";
-            }
-        }
-    };
-    reader.readAsText(file);
-  };
-  
-  const handleClear = () => {
-    if (nodes.length === 0 && edges.length === 0) {
-        showNotification("Canvas is already empty.", "info");
-        return;
-    }
-    setIsClearConfirmationOpen(true);
-  };
-
-  const executeClear = () => {
-    setNodes([]);
-    setEdges([]);
-    showNotification("Canvas cleared.", "success");
-    setIsClearConfirmationOpen(false);
-  }
-
   const handleDeleteAction = () => {
-    const nodesToDelete = getNodes().filter((node) => node.selected);
+    // Prevent deletion of Locked nodes
+    const nodesToDelete = getNodes().filter((node) => node.selected && !node.data.isLocked);
+    // Allow deleting edges, but be careful not to break the chain permanently (user can reconnect)
     const edgesToDelete = getEdges().filter((edge) => edge.selected);
 
     if (nodesToDelete.length > 0 || edgesToDelete.length > 0) {
       deleteElements({ nodes: nodesToDelete, edges: edgesToDelete });
-    } else {
-      handleClear();
     }
   };
 
-  const handleSave = () => {
-    const sorted = getSortedNodes(nodes, edges);
-    const livePrompt = sorted.map(node => node.data.content).join('\n\n---\n\n');
-    onSaveRequest(livePrompt);
+  const handleClearCanvas = () => {
+      setIsClearConfirmationOpen(true);
   };
+
+  const executeReset = () => {
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+      setIsClearConfirmationOpen(false);
+      showNotification('Canvas reset to initial state.', 'success');
+  }
 
   return (
     <main className="app-main app-main--builder">
@@ -229,6 +271,11 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
                 fitView
                 defaultEdgeOptions={{ animated: true }}
                 proOptions={{ hideAttribution: true }}
+                deleteKeyCode={['Backspace', 'Delete']}
+                onNodesDelete={(nodesToDelete) => {
+                    // Prevent deleting locked nodes via keyboard
+                    if (nodesToDelete.some(n => n.data.isLocked)) return false;
+                }}
             >
                 <Controls />
                 <Background gap={16} color="var(--surface-tertiary)" />
@@ -238,22 +285,16 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
                     </button>
                 </div>
                 <div className="prompt-builder__canvas-actions">
-                    <button className="btn btn--primary" onClick={() => setIsAIFillModalOpen(true)}>
-                        <ZapIcon className="icon" />
-                        AI Fill
+                     <button className="btn btn--secondary" onClick={handleClearCanvas}>
+                        Reset Canvas
                     </button>
-                    <button className="btn btn--primary" onClick={handleSave}>
+                    <button className="btn btn--primary" onClick={() => {
+                         alert("Please copy the generated prompt from the Properties Panel preview.");
+                    }}>
                         <SaveIcon className="icon" />
-                        Save
+                        Save Prompt
                     </button>
-                    <input type="file" ref={importFileRef} onChange={handleImportFile} accept=".json" style={{ display: 'none' }} />
-                    <button className="btn btn--secondary btn--icon" onClick={handleImportClick} title="Import Workflow">
-                        <ImportIcon className="icon" />
-                    </button>
-                    <button className="btn btn--secondary btn--icon" onClick={handleExport} title="Export Workflow">
-                        <ExportIcon className="icon" />
-                    </button>
-                    <button className="btn btn--danger btn--icon" onClick={handleDeleteAction} title="Delete Selected / Clear Canvas">
+                     <button className="btn btn--danger btn--icon" onClick={handleDeleteAction} title="Delete Selected">
                         <DeleteIcon className="icon" />
                     </button>
                 </div>
@@ -264,24 +305,17 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
             onNodeDataChange={onNodeDataChange}
             nodes={nodes}
             edges={edges}
+            onSaveRequest={onSaveRequest} 
         />
         </div>
-        <AIFillModal 
-            isOpen={isAIFillModalOpen}
-            onClose={() => setIsAIFillModalOpen(false)}
-            onConfirm={handleAIFill}
-            geminiApiKey={appSettings.geminiApiKey}
-            modelId={appSettings.defaultGeminiModelId}
-            showNotification={showNotification}
-        />
         {isClearConfirmationOpen && (
             <ConfirmationModal
                 isOpen={true}
                 onClose={() => setIsClearConfirmationOpen(false)}
-                onConfirm={executeClear}
-                title="Clear Canvas"
-                message={<p>Are you sure you want to clear the entire canvas? This will delete all nodes and edges and cannot be undone.</p>}
-                confirmButtonText="Clear Canvas"
+                onConfirm={executeReset}
+                title="Reset Workflow"
+                message={<p>Are you sure you want to reset the workflow? This will remove all custom tools and history, reverting to the default System Prompt and Trigger.</p>}
+                confirmButtonText="Reset"
             />
         )}
     </main>

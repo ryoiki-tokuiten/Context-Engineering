@@ -1,3 +1,4 @@
+import React from 'react';
 
 export interface IdTextPair {
   id: string;
@@ -85,7 +86,6 @@ export interface GlobalSearchResultItem {
 
 // For App Settings (Custom Gemini Instructions & Model Config)
 export interface AppSettings {
-  geminiApiKey: string;
   geminiRefineInstruction: string;
   geminiGenerateInstruction: string;
   geminiTagSuggestionInstruction: string; // New setting for tag suggestions
@@ -98,4 +98,12 @@ export interface AttachedFile {
   name: string;
   mimeType: string;
   data: string; // base64 encoded string
+}
+
+// For Prompt Diff Tool
+export interface DiffModalState {
+  isOpen: boolean;
+  versionA: PromptVersion;
+  versionB: PromptVersion;
+  promptTitle: string;
 }

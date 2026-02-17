@@ -11,9 +11,9 @@ interface GeminiSuggestTagsModalProps {
   systemInstructions: string;
   currentTags: string[]; 
   onApplyTags: (suggestedTagsToAdd: string[]) => void;
+  apiKey?: string;
   modelId: string;
   tagSuggestionInstruction: string;
-  geminiApiKey: string; // Added geminiApiKey prop
 }
 
 export const GeminiSuggestTagsModal: React.FC<GeminiSuggestTagsModalProps> = ({
@@ -24,14 +24,17 @@ export const GeminiSuggestTagsModal: React.FC<GeminiSuggestTagsModalProps> = ({
   systemInstructions,
   currentTags,
   onApplyTags,
+  apiKey,
   modelId,
   tagSuggestionInstruction,
-  geminiApiKey,
 }) => {
-  
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [selectedNewTags, setSelectedNewTags] = useState<string[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSuggestions = useCallback(async () => {
-    if (!geminiApiKey) {
+    if (!apiKey) {
       setError("API key is not configured.");
       return;
     }
@@ -51,7 +54,7 @@ export const GeminiSuggestTagsModal: React.FC<GeminiSuggestTagsModalProps> = ({
     setSelectedNewTags([]);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      const ai = new GoogleGenAI({ apiKey });
       let contextForGemini = `System Instruction for Tag Generation: ${tagSuggestionInstruction}\n\n`;
       contextForGemini += `Prompt Title: "${promptTitle || 'N/A'}"\n\n`;
       contextForGemini += `Prompt Content:\n"""\n${promptContent || 'N/A'}\n"""\n\n`;

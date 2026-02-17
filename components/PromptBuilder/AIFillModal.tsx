@@ -10,12 +10,12 @@ interface AIFillModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (workflow: AIFillWorkflow) => void;
+  apiKey?: string;
   modelId: string;
   showNotification: (message: string, type?: NotificationState['type'], duration?: number) => void;
-  geminiApiKey: string; // Added geminiApiKey prop
 }
 
-export const AIFillModal: React.FC<AIFillModalProps> = ({ isOpen, onClose, onConfirm, geminiApiKey, modelId, showNotification }) => {
+export const AIFillModal: React.FC<AIFillModalProps> = ({ isOpen, onClose, onConfirm, apiKey, modelId, showNotification }) => {
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export const AIFillModal: React.FC<AIFillModalProps> = ({ isOpen, onClose, onCon
   }, [isOpen]);
 
   const handleGenerate = useCallback(async () => {
-    if (!geminiApiKey) {
+    if (!apiKey) {
       setError("API key is not configured. Please set it in the application settings.");
       return;
     }
@@ -42,7 +42,7 @@ export const AIFillModal: React.FC<AIFillModalProps> = ({ isOpen, onClose, onCon
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      const ai = new GoogleGenAI({ apiKey });
       const fullPrompt = `${AI_FILL_SYSTEM_INSTRUCTION}
 ---
 AVAILABLE BLOCK TYPES:
@@ -86,7 +86,7 @@ USER REQUEST:
       setIsLoading(false);
     }
 
-  }, [geminiApiKey, modelId, description, onConfirm, onClose, showNotification]);
+  }, [apiKey, modelId, description, onConfirm, onClose, showNotification]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="AI Fill Workflow" size="lg">

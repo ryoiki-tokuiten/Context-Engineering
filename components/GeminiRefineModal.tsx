@@ -29,11 +29,11 @@ interface GeminiRefineModalProps {
   onClose: () => void;
   originalText: string;
   onApply: (refinedText: string) => void;
+  apiKey?: string; 
   modelId: string;
   contextLabel: string;
   systemInstruction: string;
   showNotification?: (message: string, type?: 'success' | 'error' | 'info' | 'warning', duration?: number) => void;
-  geminiApiKey: string; // Added geminiApiKey prop
 }
 
 export const GeminiRefineModal: React.FC<GeminiRefineModalProps> = ({

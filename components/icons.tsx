@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Plus,
@@ -53,6 +54,15 @@ import {
   Feather,
   Binary,
   BrainCircuit,
+  GitCompareArrows,
+  History,
+  MessageSquare,
+  Wrench,
+  Database,
+  FunctionSquare,
+  Box,
+  Server,
+  CheckCircle,
   type LucideProps
 } from 'lucide-react';
 
@@ -75,6 +85,7 @@ export const SpinnerIcon: React.FC<LucideProps> = ({ className, ...props }) => (
 );
 
 export const LightbulbIcon: React.FC<LucideProps> = (props) => <Bot {...props} />;
+export const BotIcon: React.FC<LucideProps> = (props) => <Bot {...props} />; // Exported for direct use
 export const InfoIcon: React.FC<LucideProps> = (props) => <Info {...props} />;
 export const WarningIcon: React.FC<LucideProps> = (props) => <AlertTriangle {...props} />;
 export const ErrorIcon: React.FC<LucideProps> = (props) => <AlertCircle {...props} />;
@@ -95,6 +106,8 @@ export const ZapIcon: React.FC<LucideProps> = (props) => <Zap {...props} />;
 export const SaveIcon: React.FC<LucideProps> = (props) => <Save {...props} />;
 export const PanelLeftCloseIcon: React.FC<LucideProps> = (props) => <PanelLeftClose {...props} />;
 export const PanelLeftOpenIcon: React.FC<LucideProps> = (props) => <PanelLeftOpen {...props} />;
+export const GitCompareArrowsIcon: React.FC<LucideProps> = (props) => <GitCompareArrows {...props} />;
+
 
 // Icons for the Builder
 export const UserIcon: React.FC<LucideProps> = (props) => <User {...props} />;
@@ -115,3 +128,13 @@ export const AlignLeftIcon: React.FC<LucideProps> = (props) => <AlignLeft {...pr
 export const FeatherIcon: React.FC<LucideProps> = (props) => <Feather {...props} />;
 export const BinaryIcon: React.FC<LucideProps> = (props) => <Binary {...props} />;
 export const BrainCircuitIcon: React.FC<LucideProps> = (props) => <BrainCircuit {...props} />;
+export const BoxIcon: React.FC<LucideProps> = (props) => <Box {...props} />; 
+
+// Context Engineering specific icons
+export const HistoryIcon: React.FC<LucideProps> = (props) => <History {...props} />;
+export const MessageSquareIcon: React.FC<LucideProps> = (props) => <MessageSquare {...props} />;
+export const WrenchIcon: React.FC<LucideProps> = (props) => <Wrench {...props} />;
+export const DatabaseIcon: React.FC<LucideProps> = (props) => <Database {...props} />;
+export const FunctionSquareIcon: React.FC<LucideProps> = (props) => <FunctionSquare {...props} />;
+export const ServerIcon: React.FC<LucideProps> = (props) => <Server {...props} />;
+export const CheckCircleIcon: React.FC<LucideProps> = (props) => <CheckCircle {...props} />;

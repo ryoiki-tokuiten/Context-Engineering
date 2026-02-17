@@ -28,26 +28,25 @@ interface GeminiGenerateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApplyGeneratedContent: (generatedText: string, mode: 'replace' | 'append') => void;
+  apiKey?: string;
   modelId: string;
   contextLabel: string; 
   systemInstruction: string;
   initialContextText?: string; 
   showNotification?: (message: string, type?: 'success' | 'error' | 'info' | 'warning', duration?: number) => void;
-  geminiApiKey: string; // Added geminiApiKey prop
 }
 
 export const GeminiGenerateModal: React.FC<GeminiGenerateModalProps> = ({
   isOpen,
   onClose,
   onApplyGeneratedContent,
-  geminiApiKey,
+  apiKey,
   modelId,
   contextLabel,
   systemInstruction,
   initialContextText,
-  showNotification, 
+  showNotification
 }) => {
-
   const [userPrompt, setUserPrompt] = useState(''); 
   const [generatedText, setGeneratedText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -92,7 +91,7 @@ export const GeminiGenerateModal: React.FC<GeminiGenerateModalProps> = ({
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!geminiApiKey) {
+    if (!apiKey) {
       setError("API key is not configured.");
       return;
     }
@@ -110,7 +109,7 @@ export const GeminiGenerateModal: React.FC<GeminiGenerateModalProps> = ({
     setGeneratedText('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      const ai = new GoogleGenAI({ apiKey });
       const parts: Part[] = [];
 
       parts.push({ text: `User's primary request for generation: ${userPrompt}` });

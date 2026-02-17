@@ -16,7 +16,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveSettings,
   initialDefaultSettings,
 }) => {
-  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [refineInstruction, setRefineInstruction] = useState('');
   const [generateInstruction, setGenerateInstruction] = useState('');
   const [tagSuggestionInstruction, setTagSuggestionInstruction] = useState('');
@@ -25,7 +24,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [newModelIdInput, setNewModelIdInput] = useState('');
 
   useEffect(() => {
-    setGeminiApiKey(currentSettings.geminiApiKey);
     setRefineInstruction(currentSettings.geminiRefineInstruction);
     setGenerateInstruction(currentSettings.geminiGenerateInstruction);
     setTagSuggestionInstruction(currentSettings.geminiTagSuggestionInstruction || initialDefaultSettings.geminiTagSuggestionInstruction);
@@ -43,7 +41,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const finalAvailableModels = Array.from(new Set([...availableModelIds, defaultModelId])).filter(Boolean).sort();
     
     onSaveSettings({
-      geminiApiKey,
       geminiRefineInstruction: refineInstruction,
       geminiGenerateInstruction: generateInstruction,
       geminiTagSuggestionInstruction: tagSuggestionInstruction,
@@ -94,22 +91,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <>
       <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-        <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--space-md)'}}>
-            <h3 className="modal__title" style={{fontSize: '1rem', borderBottom: '1px solid var(--border-primary)', paddingBottom: 'var(--space-md)'}}>API Configuration</h3>
-            <div className="form-group">
-                <label htmlFor="geminiApiKey" className="form-label">Gemini API Key</label>
-                <input
-                    id="geminiApiKey"
-                    type="password"
-                    value={geminiApiKey}
-                    onChange={(e) => setGeminiApiKey(e.target.value)}
-                    className="form-input"
-                    placeholder="Enter your Gemini API Key"
-                />
-            </div>
-        </div>
-        
-        <div style={sectionSeparatorStyle}></div>
         
         <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)'}}>
             <h3 className="modal__title" style={{fontSize: '1rem', borderBottom: '1px solid var(--border-primary)', paddingBottom: 'var(--space-md)'}}>Gemini Model Configuration</h3>
@@ -197,7 +178,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         
         <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
             Note: Changes to these instructions will affect how Gemini responds.
-            
+            Ensure your API key is set as an environment variable (`process.env.API_KEY`) for these features to work.
         </p>
     </div>
     <div className="modal__footer">

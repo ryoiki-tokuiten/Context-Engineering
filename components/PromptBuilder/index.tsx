@@ -99,7 +99,7 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
       });
 
       // 1. Handle Definitions (Must drop into System)
-      if (['ToolDef', 'SubAgentDef', 'MCPDef'].includes(type)) {
+      if (['ToolDef', 'SubAgentDef', 'MCPDef', 'MemoryTool'].includes(type)) {
         // Simple grid logic for small chips inside the container
         const existingDefs = nodes.filter(n => n.parentNode === SYSTEM_NODE_ID);
         const cols = 4; 
@@ -116,7 +116,7 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
             extent: 'parent',
             data: {
                 type: type,
-                name: `${blockDefinition.name.replace(' Definition', '')}`,
+                name: `${blockDefinition.name.replace(' Definition', '').replace(' Manager', '')}`,
                 content: blockDefinition.defaultContent || '',
             },
             style: { zIndex: 10 }
@@ -199,17 +199,17 @@ const PromptBuilderUI: React.FC<PromptBuilderProps> = ({ appSettings, showNotifi
           nodesToAdd.push(resultNode);
           edgesToAdd.push(resultEdge);
       } else if (type === 'ImplementationPlan') {
-          // Mandatory User Message append
-          const msgNodeId = getId();
-          const msgNode: Node<PromptBlockData> = {
-              id: msgNodeId,
+          // Mandatory Auto-Approve append
+          const autoNodeId = getId();
+          const autoNode: Node<PromptBlockData> = {
+              id: autoNodeId,
               type: PROMPT_NODE_TYPE,
               position: { x: newX, y: nextY },
-              data: { type: 'UserMessage', name: 'User Message', content: 'User: Proceed with the plan.' }
+              data: { type: 'AutoApprove', name: 'Auto Approve', content: '<system_note>User Auto-Approved</system_note>' }
           };
-          const msgEdge = { id: `e-${newNodeId}-${msgNodeId}`, source: newNodeId, target: msgNodeId, animated: true };
-          nodesToAdd.push(msgNode);
-          edgesToAdd.push(msgEdge);
+          const autoEdge = { id: `e-${newNodeId}-${autoNodeId}`, source: newNodeId, target: autoNodeId, animated: true };
+          nodesToAdd.push(autoNode);
+          edgesToAdd.push(autoEdge);
       }
 
       setNodes((nds) => nds.concat(nodesToAdd));

@@ -7,6 +7,7 @@ export type BlockType =
   | 'ToolDef' 
   | 'SubAgentDef' 
   | 'MCPDef' 
+  | 'MemoryTool'
   | 'AgentResponse' 
   | 'UserMessage'
   | 'ToolCall' 

@@ -14,7 +14,8 @@ import {
     GitCompareArrowsIcon,
     ZapIcon,
     ServerIcon,
-    CheckCircleIcon
+    CheckCircleIcon,
+    BrainCircuitIcon
 } from '../icons';
 
 export const PROMPT_NODE_TYPE = 'promptBlock';
@@ -38,6 +39,23 @@ export const BLOCK_CATEGORIES: BlockCategory[] = [
     {
         name: 'Definitions (Drop in System Prompt)',
         blocks: [
+            {
+                type: 'MemoryTool',
+                name: 'Memory Manager',
+                description: 'Enable Short-Term & Long-Term memory management.',
+                icon: BrainCircuitIcon,
+                defaultContent: `Tool: memory_manager
+Description: Manage agent memory (10k token limit).
+Operations: "append" | "replace" | "insert_before" | "insert_after" | "delete"
+
+Functions:
+- write_short_term(operation, content, target_id?)
+  * Transient state for current task.
+- write_long_term(operation, content, target_id?)
+  * Persistent storage (disk).
+
+Constraint: Content must not exist in both memories simultaneously.`
+            },
             {
                 type: 'ToolDef',
                 name: 'Tool Definition',
@@ -105,13 +123,6 @@ export const BLOCK_CATEGORIES: BlockCategory[] = [
                 description: 'Prunes context and resets focus.',
                 icon: ZapIcon,
                 defaultContent: 'Tool Call: create_implementation_plan()'
-            },
-            {
-                type: 'AutoApprove',
-                name: 'Auto Approve',
-                description: 'System flag to auto-approve next step.',
-                icon: CheckCircleIcon,
-                defaultContent: '<system_note>User Auto-Approved</system_note>'
             }
         ]
     }

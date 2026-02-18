@@ -5,7 +5,8 @@ import { PromptBlockData } from './types';
 import { 
     WrenchIcon, BotIcon, DatabaseIcon, MessageSquareIcon, 
     FunctionSquareIcon, GitCompareArrowsIcon, ZapIcon, 
-    CogIcon, UserIcon, EditIcon, ServerIcon, CheckCircleIcon
+    CogIcon, UserIcon, EditIcon, ServerIcon, CheckCircleIcon,
+    BrainCircuitIcon
 } from '../icons';
 
 const ICON_MAP: Record<string, React.FC<any>> = {
@@ -14,6 +15,7 @@ const ICON_MAP: Record<string, React.FC<any>> = {
     'ToolDef': WrenchIcon,
     'SubAgentDef': BotIcon,
     'MCPDef': ServerIcon,
+    'MemoryTool': BrainCircuitIcon,
     'AgentResponse': MessageSquareIcon,
     'UserMessage': UserIcon,
     'ToolCall': FunctionSquareIcon,
@@ -49,7 +51,7 @@ export const PromptBlockNode: React.FC<NodeProps<PromptBlockData>> = ({ data, se
     }
 
     // Definition Chips (Inside System) - Styled as small icons
-    if (['ToolDef', 'SubAgentDef', 'MCPDef'].includes(data.type)) {
+    if (['ToolDef', 'SubAgentDef', 'MCPDef', 'MemoryTool'].includes(data.type)) {
         return (
             <div 
                 className={`prompt-node definition-chip ${selected ? 'selected' : ''}`} 
@@ -71,7 +73,7 @@ export const PromptBlockNode: React.FC<NodeProps<PromptBlockData>> = ({ data, se
                 title={`${data.name}: ${data.content}`}
             >
                 <Icon className="icon" style={{width: '24px', height: '24px', marginBottom: '4px', color: 'var(--text-primary)'}} />
-                <span style={{maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{data.name.replace(/ Definition| Server/, '')}</span>
+                <span style={{maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{data.name.replace(/ Definition| Server| Manager/, '')}</span>
             </div>
         );
     }

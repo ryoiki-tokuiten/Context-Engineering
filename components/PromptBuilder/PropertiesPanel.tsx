@@ -76,7 +76,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
         }
     }
 
-    const isDefinition = selectedNode && ['ToolDef', 'SubAgentDef', 'MCPDef'].includes(selectedNode.data.type);
+    const isDefinition = selectedNode && ['ToolDef', 'SubAgentDef', 'MCPDef', 'MemoryTool'].includes(selectedNode.data.type);
 
     return (
         <aside className="prompt-builder__panel prompt-builder__panel--right custom-scrollbar">

@@ -63,6 +63,8 @@ import {
   Box,
   Server,
   CheckCircle,
+  Terminal,
+  TerminalSquare,
   type LucideProps
 } from 'lucide-react';
 
@@ -138,3 +140,5 @@ export const DatabaseIcon: React.FC<LucideProps> = (props) => <Database {...prop
 export const FunctionSquareIcon: React.FC<LucideProps> = (props) => <FunctionSquare {...props} />;
 export const ServerIcon: React.FC<LucideProps> = (props) => <Server {...props} />;
 export const CheckCircleIcon: React.FC<LucideProps> = (props) => <CheckCircle {...props} />;
+export const TerminalIcon: React.FC<LucideProps> = (props) => <Terminal {...props} />;
+export const TerminalSquareIcon: React.FC<LucideProps> = (props) => <TerminalSquare {...props} />;

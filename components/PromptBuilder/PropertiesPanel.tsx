@@ -35,7 +35,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
     // Derived State for Conversation History part
     const chatHistoryNodes = useMemo(() => {
         const historyNodes = getSortedNodes(nodes, edges);
-        
+
         // Pruning Logic (Implementation Plan)
         const implementationPlanIndex = historyNodes.findIndex(n => n.data.type === 'ImplementationPlan');
         let filteredHistory = historyNodes;
@@ -43,9 +43,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
         if (implementationPlanIndex !== -1) {
             const triggerIndex = historyNodes.findIndex(n => n.data.type === 'TriggerAgent');
             if (triggerIndex !== -1 && implementationPlanIndex > triggerIndex) {
-                 const beforeTrigger = historyNodes.slice(0, triggerIndex + 1);
-                 const afterPlan = historyNodes.slice(implementationPlanIndex);
-                 filteredHistory = [...beforeTrigger, ...afterPlan];
+                const beforeTrigger = historyNodes.slice(0, triggerIndex + 1);
+                const afterPlan = historyNodes.slice(implementationPlanIndex);
+                filteredHistory = [...beforeTrigger, ...afterPlan];
             }
         }
         return filteredHistory;
@@ -76,12 +76,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
         }
     }
 
-    const isDefinition = selectedNode && ['ToolDef', 'SubAgentDef', 'MCPDef', 'MemoryTool'].includes(selectedNode.data.type);
+    const isDefinition = selectedNode && ['ToolDef', 'SubAgentDef', 'MCPDef', 'MemoryTool', 'FileSystemBashDef'].includes(selectedNode.data.type);
 
     return (
         <aside className="prompt-builder__panel prompt-builder__panel--right custom-scrollbar">
             {selectedNode ? (
-                <div style={{flex: '0 0 auto', borderBottom: '1px solid var(--border-primary)', paddingBottom: 'var(--space-lg)', marginBottom: 'var(--space-lg)'}}>
+                <div style={{ flex: '0 0 auto', borderBottom: '1px solid var(--border-primary)', paddingBottom: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
                     <h2 className="prompt-builder__panel-title">
                         <EditIcon className="icon" />
                         Properties: {selectedNode.data.type}
@@ -94,12 +94,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                             value={selectedNode.data.name}
                             onChange={(e) => handleDataChange('name', e.target.value)}
                             className="form-input"
-                            disabled={selectedNode.data.isLocked && selectedNode.data.type !== 'SystemContainer'} 
+                            disabled={selectedNode.data.isLocked && selectedNode.data.type !== 'SystemContainer'}
                         />
                     </div>
-                    
+
                     {isDefinition && (
-                         <div className="form-group">
+                        <div className="form-group">
                             <label htmlFor="nodeDesc" className="form-label">Description</label>
                             <input
                                 id="nodeDesc"
@@ -121,72 +121,72 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                             value={selectedNode.data.content}
                             onChange={(e) => handleDataChange('content', e.target.value)}
                             className="form-textarea"
-                            style={{minHeight: '100px'}}
+                            style={{ minHeight: '100px' }}
                         />
                     </div>
                 </div>
             ) : (
-                <div className="properties-panel__placeholder" style={{flex: '0 0 auto', height: 'auto', padding: 'var(--space-lg)', marginBottom: 'var(--space-lg)'}}>
-                    <EditIcon className="icon" style={{width: '1.5rem', height: '1.5rem'}}/>
-                    <p style={{margin:0}}>Select a block to edit.</p>
+                <div className="properties-panel__placeholder" style={{ flex: '0 0 auto', height: 'auto', padding: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
+                    <EditIcon className="icon" style={{ width: '1.5rem', height: '1.5rem' }} />
+                    <p style={{ margin: 0 }}>Select a block to edit.</p>
                 </div>
             )}
-            
-            <div style={{flex: '1 1 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
-                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)'}}>
-                    <h2 className="prompt-builder__panel-title" style={{borderBottom: 'none', paddingBottom: 0, marginBottom: 0}}>
+
+            <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                    <h2 className="prompt-builder__panel-title" style={{ borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
                         <EyeIcon className="icon" />
                         Preview
                     </h2>
-                    <div style={{display: 'flex', gap: 'var(--space-xs)'}}>
+                    <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
                         <button className="btn btn--secondary btn--icon btn--sm" onClick={handleCopy} disabled={!fullLivePrompt || isCopied} title="Copy full prompt">
                             {isCopied ? <CheckIcon className="icon" /> : <CopyIcon className="icon" />}
                         </button>
-                         <button className="btn btn--primary btn--icon btn--sm" onClick={() => onSaveRequest(fullLivePrompt)} disabled={!fullLivePrompt} title="Save as Prompt">
+                        <button className="btn btn--primary btn--icon btn--sm" onClick={() => onSaveRequest(fullLivePrompt)} disabled={!fullLivePrompt} title="Save as Prompt">
                             <SaveIcon className="icon" />
                         </button>
                     </div>
                 </div>
 
-                <div className="custom-scrollbar" style={{overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', paddingRight: '4px'}}>
-                    
+                <div className="custom-scrollbar" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', paddingRight: '4px' }}>
+
                     {/* System Context Box */}
                     <div style={{
-                        background: 'var(--bg-secondary)', 
-                        border: '1px solid var(--border-primary)', 
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-primary)',
                         borderRadius: 'var(--radius-md)',
                         padding: 'var(--space-md)'
                     }}>
-                        <div style={{display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', marginBottom: 'var(--space-sm)', color: 'var(--accent-primary)', fontSize: '0.85rem', fontWeight: 600}}>
-                            <CogIcon className="icon" style={{width: '14px', height: '14px'}}/> SYSTEM CONTEXT
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', marginBottom: 'var(--space-sm)', color: 'var(--accent-primary)', fontSize: '0.85rem', fontWeight: 600 }}>
+                            <CogIcon className="icon" style={{ width: '14px', height: '14px' }} /> SYSTEM CONTEXT
                         </div>
-                        <div style={{fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'var(--text-secondary)'}}>
+                        <div style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
                             {systemPromptText}
                         </div>
                     </div>
 
                     {/* Conversation History Visualizer */}
                     <div style={{
-                        background: 'var(--bg-secondary)', 
-                        border: '1px solid var(--border-primary)', 
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-primary)',
                         borderRadius: 'var(--radius-md)',
                         padding: 'var(--space-md)',
                         flexGrow: 1
                     }}>
-                        <div style={{display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', marginBottom: 'var(--space-sm)', color: 'var(--accent-success)', fontSize: '0.85rem', fontWeight: 600}}>
-                            <HistoryIcon className="icon" style={{width: '14px', height: '14px'}}/> CONVERSATION HISTORY
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)', marginBottom: 'var(--space-sm)', color: 'var(--accent-success)', fontSize: '0.85rem', fontWeight: 600 }}>
+                            <HistoryIcon className="icon" style={{ width: '14px', height: '14px' }} /> CONVERSATION HISTORY
                         </div>
-                        
-                        <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)'}}>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
                             {chatHistoryNodes.map((node, i) => {
                                 const isUser = node.data.type === 'TriggerAgent' || node.data.type === 'UserMessage';
                                 const isSystem = node.data.type === 'ImplementationPlan' || node.data.type === 'AutoApprove';
-                                const isTool = ['ToolCall', 'ToolResult', 'MCPCall', 'MCPResult'].includes(node.data.type);
-                                
+                                const isTool = ['ToolCall', 'ToolResult', 'MCPCall', 'MCPResult', 'FileSystemBashCall', 'FileSystemBashResult'].includes(node.data.type);
+
                                 let bg = 'var(--surface-primary)';
                                 let align = 'flex-start';
                                 let border = '1px solid var(--border-primary)';
-                                
+
                                 if (isUser) {
                                     bg = 'rgba(34, 197, 94, 0.1)';
                                     border = '1px solid rgba(34, 197, 94, 0.3)';
@@ -209,17 +209,17 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                                         padding: '8px',
                                         fontSize: '0.8rem'
                                     }}>
-                                        <div style={{fontWeight: 600, marginBottom: '2px', fontSize: '0.7rem', color: 'var(--text-tertiary)'}}>
+                                        <div style={{ fontWeight: 600, marginBottom: '2px', fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
                                             {node.data.name}
                                         </div>
-                                        <div style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>
+                                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                                             {node.data.content}
                                         </div>
                                     </div>
                                 )
                             })}
                             {chatHistoryNodes.length === 0 && (
-                                <div style={{textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.8rem', padding: '20px'}}>
+                                <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.8rem', padding: '20px' }}>
                                     History empty
                                 </div>
                             )}
